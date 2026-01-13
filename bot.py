@@ -66,7 +66,7 @@ async def create_rank_card(user, user_stats):
             avatar_data = await resp.read()
     
     # Create card with modern design
-    width, height = 900, 350
+    width, height = 1000, 300
     card = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     
     # Keep original background unchanged
@@ -76,7 +76,7 @@ async def create_rank_card(user, user_stats):
         card.paste(background, (0, 0))
         
         # Add dark overlay for better text readability
-        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 120))
+        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 140))
         card = Image.alpha_composite(card, overlay)
     except:
         # Original gradient background
@@ -89,102 +89,142 @@ async def create_rank_card(user, user_stats):
     
     # Load and process avatar with neon glow
     avatar = Image.open(io.BytesIO(avatar_data)).convert('RGBA')
-    avatar = avatar.resize((120, 120))
+    avatar = avatar.resize((160, 160))
     
     # Create circular mask
-    mask = Image.new('L', (120, 120), 0)
+    mask = Image.new('L', (160, 160), 0)
     draw_mask = ImageDraw.Draw(mask)
-    draw_mask.ellipse((0, 0, 120, 120), fill=255)
+    draw_mask.ellipse((0, 0, 160, 160), fill=255)
     
     # Create neon glow border
-    glow_size = 5
-    glow_avatar = Image.new('RGBA', (120 + glow_size * 2, 120 + glow_size * 2), (0, 255, 255, 180))
-    glow_mask = Image.new('L', (120 + glow_size * 2, 120 + glow_size * 2), 0)
+    glow_size = 6
+    glow_avatar = Image.new('RGBA', (160 + glow_size * 2, 160 + glow_size * 2), (0, 255, 255, 200))
+    glow_mask = Image.new('L', (160 + glow_size * 2, 160 + glow_size * 2), 0)
     draw_glow = ImageDraw.Draw(glow_mask)
-    draw_glow.ellipse((0, 0, 120 + glow_size * 2, 120 + glow_size * 2), fill=255)
+    draw_glow.ellipse((0, 0, 160 + glow_size * 2, 160 + glow_size * 2), fill=255)
     
     # Apply masks
     avatar.putalpha(mask)
     glow_avatar.putalpha(glow_mask)
     
-    # Paste avatar with glow
-    card.paste(glow_avatar, (40, 40), glow_avatar)
-    card.paste(avatar, (40 + glow_size, 40 + glow_size), avatar)
+    # Paste avatar with glow - centered vertically
+    avatar_y = (height - 160) // 2 - 10
+    card.paste(glow_avatar, (30, avatar_y), glow_avatar)
+    card.paste(avatar, (30 + glow_size, avatar_y + glow_size), avatar)
     
     draw = ImageDraw.Draw(card)
     
     # Load fonts
     try:
-        font_username = ImageFont.truetype("arial.ttf", 72)  # 150% larger
-        font_handle = ImageFont.truetype("arial.ttf", 36)    # 50% of username
-        font_label = ImageFont.truetype("arial.ttf", 42)     # 60% of username
-        font_xp = ImageFont.truetype("arial.ttf", 30)        # 42% of username
+        font_username = ImageFont.truetype("arialbd.ttf", 56)  # Bold, very large
+        font_level = ImageFont.truetype("arialbd.ttf", 38)     # Bold level
+        font_label = ImageFont.truetype("arial.ttf", 28)       # Labels
+        font_xp = ImageFont.truetype("arial.ttf", 24)          # XP numbers
     except:
-        font_username = ImageFont.load_default()
-        font_handle = ImageFont.load_default()
-        font_label = ImageFont.load_default()
-        font_xp = ImageFont.load_default()
+        try:
+            font_username = ImageFont.truetype("arial.ttf", 56)
+            font_level = ImageFont.truetype("arial.ttf", 38)
+            font_label = ImageFont.truetype("arial.ttf", 28)
+            font_xp = ImageFont.truetype("arial.ttf", 24)
+        except:
+            font_username = ImageFont.load_default()
+            font_level = ImageFont.load_default()
+            font_label = ImageFont.load_default()
+            font_xp = ImageFont.load_default()
     
-    # Username - top-left next to avatar, bold white
-    username_x = 180
-    draw.text((username_x, 50), user.display_name.upper(), fill=(255, 255, 255), font=font_username)
+    # Username - very large and bold
+    username_x = 230
+    draw.text((username_x, 35), user.display_name.upper(), fill=(255, 255, 255), font=font_username)
     
-    # User handle (optional)
-    draw.text((username_x, 110), f"#{user.discriminator}" if user.discriminator != '0' else f"@{user.name}", 
-              fill=(200, 200, 200, 200), font=font_handle)
-    
-    # Level text
+    # Level badge with background
+    level_y = 95
     level_text = f"LEVEL {user_stats['level']}"
-    draw.text((username_x, 140), level_text, fill=(255, 215, 0), font=font_label)
+    level_bbox = draw.textbbox((0, 0), level_text, font=font_level)
+    level_width = level_bbox[2] - level_bbox[0]
+    
+    # Level badge background
+    draw.rounded_rectangle(
+        [username_x - 5, level_y - 5, username_x + level_width + 15, level_y + 40],
+        radius=8,
+        fill=(255, 215, 0, 50),
+        outline=(255, 215, 0, 255),
+        width=2
+    )
+    draw.text((username_x + 5, level_y), level_text, fill=(255, 215, 0), font=font_level)
     
     # Progress bars setup
-    bar_width = int(width * 0.75)  # 75% of card width
-    bar_height = 20
+    bar_width = 720
+    bar_height = 28
     bar_x = username_x
     
     # TEXT XP Progress Bar
-    text_y = 190
-    draw.text((bar_x, text_y - 25), "TEXT XP", fill=(100, 200, 255), font=font_label)
+    text_y = 160
+    draw.text((bar_x, text_y - 30), "TEXT XP", fill=(100, 200, 255), font=font_label)
     
-    # Background bar
-    draw.rounded_rectangle([bar_x, text_y, bar_x + bar_width, text_y + bar_height], 
-                          radius=bar_height//2, fill=(40, 40, 50))
+    # Background bar with border
+    draw.rounded_rectangle(
+        [bar_x, text_y, bar_x + bar_width, text_y + bar_height],
+        radius=bar_height // 2,
+        fill=(30, 30, 40),
+        outline=(60, 60, 70),
+        width=2
+    )
     
     # Progress fill - blue gradient
-    chat_progress = min(user_stats['chat_xp'] / max(1000, user_stats['chat_xp']), 1.0)
-    progress_width = int(chat_progress * bar_width)
-    if progress_width > 0:
+    chat_max = max(user_stats['chat_xp'], 1000)
+    chat_progress = min(user_stats['chat_xp'] / chat_max, 1.0)
+    progress_width = int(chat_progress * (bar_width - 4))
+    if progress_width > 10:
         for i in range(progress_width):
             intensity = i / bar_width
-            color = (int(50 + intensity * 100), int(150 + intensity * 100), 255)
-            draw.rectangle([bar_x + i, text_y, bar_x + i + 1, text_y + bar_height], fill=color)
+            color = (int(30 + intensity * 120), int(120 + intensity * 135), 255)
+            draw.rectangle([bar_x + 2 + i, text_y + 2, bar_x + 3 + i, text_y + bar_height - 2], fill=color)
     
-    # XP text
-    draw.text((bar_x, text_y + 25), f"{user_stats['chat_xp']:,} XP", fill=(180, 180, 180), font=font_xp)
+    # XP text on bar
+    xp_text = f"{user_stats['chat_xp']:,} XP"
+    draw.text((bar_x + 15, text_y + 4), xp_text, fill=(255, 255, 255), font=font_xp)
     
     # VOICE XP Progress Bar
-    voice_y = 250
-    draw.text((bar_x, voice_y - 25), "VOICE XP", fill=(255, 100, 200), font=font_label)
+    voice_y = 230
+    draw.text((bar_x, voice_y - 30), "VOICE XP", fill=(255, 100, 200), font=font_label)
     
-    # Background bar
-    draw.rounded_rectangle([bar_x, voice_y, bar_x + bar_width, voice_y + bar_height], 
-                          radius=bar_height//2, fill=(40, 40, 50))
+    # Background bar with border
+    draw.rounded_rectangle(
+        [bar_x, voice_y, bar_x + bar_width, voice_y + bar_height],
+        radius=bar_height // 2,
+        fill=(30, 30, 40),
+        outline=(60, 60, 70),
+        width=2
+    )
     
     # Progress fill - purple gradient
-    voice_progress = min(user_stats['vc_xp'] / max(1000, user_stats['vc_xp']), 1.0)
-    progress_width = int(voice_progress * bar_width)
-    if progress_width > 0:
+    voice_max = max(user_stats['vc_xp'], 1000)
+    voice_progress = min(user_stats['vc_xp'] / voice_max, 1.0)
+    progress_width = int(voice_progress * (bar_width - 4))
+    if progress_width > 10:
         for i in range(progress_width):
             intensity = i / bar_width
-            color = (int(150 + intensity * 100), int(50 + intensity * 100), 255)
-            draw.rectangle([bar_x + i, voice_y, bar_x + i + 1, voice_y + bar_height], fill=color)
+            color = (int(180 + intensity * 75), int(30 + intensity * 70), 255)
+            draw.rectangle([bar_x + 2 + i, voice_y + 2, bar_x + 3 + i, voice_y + bar_height - 2], fill=color)
     
-    # XP text
-    draw.text((bar_x, voice_y + 25), f"{user_stats['vc_xp']:,} XP", fill=(180, 180, 180), font=font_xp)
+    # XP text on bar
+    xp_text = f"{user_stats['vc_xp']:,} XP"
+    draw.text((bar_x + 15, voice_y + 4), xp_text, fill=(255, 255, 255), font=font_xp)
     
-    # Total XP at bottom right
+    # Total XP badge - top right
     total_text = f"TOTAL: {user_stats['total_xp']:,} XP"
-    draw.text((width - 200, height - 40), total_text, fill=(255, 215, 0), font=font_label)
+    total_bbox = draw.textbbox((0, 0), total_text, font=font_label)
+    total_width = total_bbox[2] - total_bbox[0]
+    total_x = width - total_width - 40
+    
+    draw.rounded_rectangle(
+        [total_x - 10, 35, width - 30, 70],
+        radius=8,
+        fill=(40, 40, 50, 200),
+        outline=(255, 215, 0, 255),
+        width=2
+    )
+    draw.text((total_x, 40), total_text, fill=(255, 215, 0), font=font_label)
     
     # Save to bytes
     img_bytes = io.BytesIO()

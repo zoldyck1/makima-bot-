@@ -57,7 +57,7 @@ async def on_message(message):
             member = None
             target_channel = None
             
-            # Get member
+            # Get member (first user)
             if message.mentions:
                 member = message.mentions[0]
             else:
@@ -75,14 +75,26 @@ async def on_message(message):
                 await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
                 return
             
-            # Check if channel is mentioned
+            # Check if second user/channel is specified
             if len(parts) >= 3:
-                # Try to find channel by name
-                channel_name = ' '.join(parts[2:])
-                for vc in message.guild.voice_channels:
-                    if vc.name.lower() == channel_name.lower() or f"<#{vc.id}>" in message.content:
-                        target_channel = vc
-                        break
+                # Try to get second user by mention or ID
+                if len(message.mentions) >= 2:
+                    target_user = message.mentions[1]
+                    if target_user.voice and target_user.voice.channel:
+                        target_channel = target_user.voice.channel
+                else:
+                    try:
+                        user_id = int(parts[2])
+                        target_user = message.guild.get_member(user_id)
+                        if target_user and target_user.voice and target_user.voice.channel:
+                            target_channel = target_user.voice.channel
+                    except:
+                        # Try to find channel by name
+                        channel_name = ' '.join(parts[2:])
+                        for vc in message.guild.voice_channels:
+                            if vc.name.lower() == channel_name.lower() or f"<#{vc.id}>" in message.content:
+                                target_channel = vc
+                                break
             
             # If no channel specified, use author's channel
             if not target_channel:

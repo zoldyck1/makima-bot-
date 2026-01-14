@@ -57,7 +57,7 @@ async def on_message(message):
             member = None
             target_channel = None
             
-            # Get member (first user)
+            # Get first member
             if message.mentions:
                 member = message.mentions[0]
             else:
@@ -75,31 +75,45 @@ async def on_message(message):
                 await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
                 return
             
-            # Check if second user/channel is specified
+            # Check if second parameter exists
             if len(parts) >= 3:
-                # Try to get second user by mention or ID
+                # Try second user by mention
                 if len(message.mentions) >= 2:
                     target_user = message.mentions[1]
                     if target_user.voice and target_user.voice.channel:
                         target_channel = target_user.voice.channel
+                    else:
+                        await message.channel.send(f"❌ {target_user.mention} is not in a voice channel!")
+                        return
                 else:
+                    # Try second user by ID
                     try:
-                        user_id = int(parts[2])
-                        target_user = message.guild.get_member(user_id)
-                        if target_user and target_user.voice and target_user.voice.channel:
-                            target_channel = target_user.voice.channel
+                        user_id2 = int(parts[2])
+                        target_user = message.guild.get_member(user_id2)
+                        if target_user:
+                            if target_user.voice and target_user.voice.channel:
+                                target_channel = target_user.voice.channel
+                            else:
+                                await message.channel.send(f"❌ <@{user_id2}> is not in a voice channel!")
+                                return
+                        else:
+                            await message.channel.send(f"❌ User with ID {user_id2} not found!")
+                            return
                     except:
-                        # Try to find channel by name
+                        # Try channel by name
                         channel_name = ' '.join(parts[2:])
                         for vc in message.guild.voice_channels:
-                            if vc.name.lower() == channel_name.lower() or f"<#{vc.id}>" in message.content:
+                            if vc.name.lower() == channel_name.lower():
                                 target_channel = vc
                                 break
+                        if not target_channel:
+                            await message.channel.send(f"❌ Channel '{channel_name}' not found!")
+                            return
             
-            # If no channel specified, use author's channel
+            # If no target specified, use author's channel
             if not target_channel:
                 if not message.author.voice or not message.author.voice.channel:
-                    await message.channel.send("❌ You must be in a voice channel or specify a channel!")
+                    await message.channel.send("❌ You must be in a voice channel!")
                     return
                 target_channel = message.author.voice.channel
             

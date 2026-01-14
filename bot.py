@@ -21,6 +21,32 @@ async def on_message(message):
     if message.author.bot:
         return
     
+    # Clear command
+    if message.content.lower().startswith('clear'):
+        if not message.author.guild_permissions.manage_messages:
+            await message.channel.send("❌ You don't have permission to manage messages!")
+            return
+        
+        parts = message.content.split()
+        amount = 10
+        if len(parts) >= 2:
+            try:
+                amount = int(parts[1])
+                if amount > 100:
+                    amount = 100
+            except:
+                amount = 10
+        
+        try:
+            deleted = await message.channel.purge(limit=amount + 1)
+            msg = await message.channel.send(f"✅ Deleted {len(deleted) - 1} messages")
+            await msg.delete(delay=3)
+        except discord.Forbidden:
+            await message.channel.send("❌ I don't have permission to delete messages!")
+        except Exception as e:
+            await message.channel.send(f"❌ Error: {str(e)}")
+        return
+    
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:
             await message.channel.send("❌ You don't have permission to move members!")

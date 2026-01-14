@@ -26,13 +26,12 @@ async def on_message(message):
             await message.channel.send("❌ You don't have permission to move members!")
             return
         
-        if not message.author.voice or not message.author.voice.channel:
-            await message.channel.send("❌ You must be in a voice channel!")
-            return
-        
         parts = message.content.split()
         if len(parts) >= 2:
             member = None
+            target_channel = None
+            
+            # Get member
             if message.mentions:
                 member = message.mentions[0]
             else:
@@ -50,9 +49,25 @@ async def on_message(message):
                 await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
                 return
             
+            # Check if channel is mentioned
+            if len(parts) >= 3:
+                # Try to find channel by name
+                channel_name = ' '.join(parts[2:])
+                for vc in message.guild.voice_channels:
+                    if vc.name.lower() == channel_name.lower() or f"<#{vc.id}>" in message.content:
+                        target_channel = vc
+                        break
+            
+            # If no channel specified, use author's channel
+            if not target_channel:
+                if not message.author.voice or not message.author.voice.channel:
+                    await message.channel.send("❌ You must be in a voice channel or specify a channel!")
+                    return
+                target_channel = message.author.voice.channel
+            
             try:
-                await member.move_to(message.author.voice.channel)
-                await message.channel.send(f"✅ Moved {member.mention} to {message.author.voice.channel.mention}")
+                await member.move_to(target_channel)
+                await message.channel.send(f"✅ Moved {member.mention} to {target_channel.mention}")
             except discord.Forbidden:
                 await message.channel.send("❌ I don't have permission to move members!")
             except Exception as e:

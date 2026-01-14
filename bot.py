@@ -80,6 +80,12 @@ async def on_message(message):
                 await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
                 return
             
+            # Check if member's current channel is locked
+            current_channel = member.voice.channel
+            if current_channel.user_limit > 0 and len(current_channel.members) < current_channel.user_limit:
+                await message.channel.send(f"❌ Cannot move from {current_channel.mention} - room is locked!")
+                return
+            
             # Check if second parameter exists
             if len(parts) >= 3:
                 # Try second user by mention
@@ -129,6 +135,11 @@ async def on_message(message):
                 target_channel = message.author.voice.channel
             
             try:
+                # Check if target channel is locked (user limit reached)
+                if target_channel.user_limit > 0 and len(target_channel.members) >= target_channel.user_limit:
+                    await message.channel.send(f"❌ {target_channel.mention} is locked (full)!")
+                    return
+                
                 await member.move_to(target_channel)
                 await message.channel.send(f"✅ Moved {member.mention} to {target_channel.mention}")
             except discord.Forbidden:

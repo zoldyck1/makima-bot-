@@ -210,6 +210,46 @@ async def on_message(message):
     if message.author.bot:
         return
     
+    # Move command with 'aji @user' or 'aji userid'
+    if message.content.lower().startswith('aji'):
+        if not message.author.guild_permissions.move_members:
+            await message.channel.send("❌ You don't have permission to move members!")
+            return
+        
+        if not message.author.voice or not message.author.voice.channel:
+            await message.channel.send("❌ You must be in a voice channel to use this command!")
+            return
+        
+        parts = message.content.split()
+        if len(parts) >= 2:
+            # Try to get member from mention or ID
+            member = None
+            if message.mentions:
+                member = message.mentions[0]
+            else:
+                try:
+                    user_id = int(parts[1])
+                    member = message.guild.get_member(user_id)
+                except:
+                    pass
+            
+            if not member:
+                await message.channel.send("❌ User not found!")
+                return
+            
+            if not member.voice:
+                await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
+                return
+            
+            try:
+                await member.move_to(message.author.voice.channel)
+                await message.channel.send(f"✅ Moved {member.mention} to {message.author.voice.channel.mention}")
+            except discord.Forbidden:
+                await message.channel.send("❌ I don't have permission to move members!")
+            except Exception as e:
+                await message.channel.send(f"❌ Error: {str(e)}")
+        return
+    
     # Quick rank command with 'r' or 'r @user' or 'r userid'
     if message.content.lower().startswith('r'):
         parts = message.content.split()
@@ -371,6 +411,21 @@ async def leaderboard_command(ctx):
             )
     
     await ctx.send(embed=embed)
+
+@bot.hybrid_command(name='move')
+@commands.has_permissions(move_members=True)
+async def move_command(ctx, member: discord.Member, channel: discord.VoiceChannel):
+    if not member.voice:
+        await ctx.send(f"❌ {member.mention} is not in a voice channel!")
+        return
+    
+    try:
+        await member.move_to(channel)
+        await ctx.send(f"✅ Moved {member.mention} to {channel.mention}")
+    except discord.Forbidden:
+        await ctx.send("❌ I don't have permission to move members!")
+    except Exception as e:
+        await ctx.send(f"❌ Error: {str(e)}")
 
 # Run the bot
 if __name__ == "__main__":

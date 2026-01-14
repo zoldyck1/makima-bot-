@@ -64,6 +64,11 @@ async def on_message(message):
                 try:
                     user_id = int(parts[1])
                     member = message.guild.get_member(user_id)
+                    if not member:
+                        try:
+                            member = await message.guild.fetch_member(user_id)
+                        except:
+                            pass
                 except:
                     pass
             
@@ -90,6 +95,12 @@ async def on_message(message):
                     try:
                         user_id2 = int(parts[2])
                         target_user = message.guild.get_member(user_id2)
+                        if not target_user:
+                            try:
+                                target_user = await message.guild.fetch_member(user_id2)
+                            except:
+                                pass
+                        
                         if target_user:
                             if target_user.voice and target_user.voice.channel:
                                 target_channel = target_user.voice.channel

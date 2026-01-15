@@ -24,7 +24,6 @@ async def on_message(message):
     blocked_words = ['zebi', 'wld9hba', '9hba', 'qhba', 'w9', 'w10', 'zb', 'zbi', '9lawi', 'qlawi', 'terma', 'zok']
     if any(word in message.content.lower() for word in blocked_words):
         await message.channel.send("matkhssrch lhdra a wld 9hba")
-        return
     
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:
@@ -44,7 +43,8 @@ async def on_message(message):
                 try:
                     user_id = int(parts[1])
                     member = message.guild.get_member(user_id)
-                except:
+                except ValueError:
+                    # Invalid user ID format
                     pass
             
             if not member:
@@ -62,7 +62,6 @@ async def on_message(message):
                 await message.channel.send("❌ I don't have permission to move members!")
             except Exception as e:
                 await message.channel.send(f"❌ Error: {str(e)}")
-        return
     
     await bot.process_commands(message)
 

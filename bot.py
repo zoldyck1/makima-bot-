@@ -34,7 +34,7 @@ async def on_message(message):
             return
         
         parts = message.content.split()
-        if len(parts) >= 3:
+        if len(parts) >= 2:
             # Get first user (to be moved)
             member_to_move = None
             if message.mentions and len(message.mentions) >= 1:
@@ -47,11 +47,26 @@ async def on_message(message):
                     pass
             
             if not member_to_move:
-                await message.channel.send("❌ First user not found!")
+                await message.channel.send("❌ User not found!")
                 return
             
             if not member_to_move.voice:
                 await message.channel.send(f"❌ {member_to_move.mention} is not in a voice channel!")
+                return
+            
+            # If only one parameter, move to command author's channel
+            if len(parts) == 2:
+                if not message.author.voice or not message.author.voice.channel:
+                    await message.channel.send("❌ You must be in a voice channel!")
+                    return
+                
+                try:
+                    await member_to_move.move_to(message.author.voice.channel)
+                    await message.channel.send(f"✅ Moved {member_to_move.mention} to {message.author.voice.channel.mention}")
+                except discord.Forbidden:
+                    await message.channel.send("❌ I don't have permission to move members!")
+                except Exception as e:
+                    await message.channel.send(f"❌ Error: {str(e)}")
                 return
             
             # Get destination (second user or channel name)
@@ -96,7 +111,7 @@ async def on_message(message):
             except Exception as e:
                 await message.channel.send(f"❌ Error: {str(e)}")
         else:
-            await message.channel.send("❌ Usage: `aji @user1 @user2` or `aji userID1 userID2` or `aji @user channelname`")
+            await message.channel.send("❌ Usage: `aji @user` or `aji @user1 @user2` or `aji userID1 userID2` or `aji @user channelname`")
     
     await bot.process_commands(message)
 

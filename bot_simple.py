@@ -21,6 +21,11 @@ async def on_message(message):
     if message.author.bot:
         return
     
+    blocked_words = ['zebi', 'wld9hba', '9hba', 'qhba', 'w9', 'w10', 'zb', 'zbi', '9lawi', 'qlawi', 'terma', 'zok']
+    if any(word in message.content.lower() for word in blocked_words):
+        await message.channel.send("matkhssrch lhdra a wld 9hba")
+        return
+    
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:
             await message.channel.send("❌ You don't have permission to move members!")

@@ -21,10 +21,13 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    if message.content.lower().startswith('b '):
+    if message.content.lower() == 'b' or message.content.lower().startswith('b '):
         parts = message.content.split()
-        if len(parts) >= 2:
-            user = None
+        user = None
+        
+        if len(parts) == 1:  # Just "b" command
+            user = message.author
+        elif len(parts) >= 2:
             if message.mentions:
                 user = message.mentions[0]
             else:
@@ -33,25 +36,23 @@ async def on_message(message):
                     user = bot.get_user(user_id)
                 except ValueError:
                     pass
-            
-            if not user:
-                await message.channel.send("❌ User not found!")
-                return
-            
-            try:
-                # Fetch full user to get banner
-                full_user = await bot.fetch_user(user.id)
-                if full_user.banner:
-                    banner_url = full_user.banner.url
-                    embed = discord.Embed(title=f"{full_user.display_name}'s Banner", color=0x2f3136)
-                    embed.set_image(url=banner_url)
-                    await message.channel.send(embed=embed)
-                else:
-                    await message.channel.send(f"❌ {full_user.display_name} doesn't have a banner!")
-            except Exception as e:
-                await message.channel.send(f"❌ Error: {str(e)}")
-        else:
-            await message.channel.send("❌ Usage: `b @user` or `b userID`")
+        
+        if not user:
+            await message.channel.send("❌ User not found!")
+            return
+        
+        try:
+            # Fetch full user to get banner
+            full_user = await bot.fetch_user(user.id)
+            if full_user.banner:
+                banner_url = full_user.banner.url
+                embed = discord.Embed(title=f"{full_user.display_name}'s Banner", color=0x2f3136)
+                embed.set_image(url=banner_url)
+                await message.channel.send(embed=embed)
+            else:
+                await message.channel.send(f"❌ {full_user.display_name} doesn't have a banner!")
+        except Exception as e:
+            await message.channel.send(f"❌ Error: {str(e)}")
     
     blocked_words = ['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
     for word in blocked_words:

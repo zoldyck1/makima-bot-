@@ -23,8 +23,10 @@ async def on_message(message):
     
     blocked_words = ['zebi', 'wld9hba', '9hba', 'qhba', 'w9', 'w10', 'zb', 'zbi', '9lawi', 'qlawi', 'terma', 'zok']
     message_lower = message.content.lower()
+    print(f"Message: '{message.content}' | Lower: '{message_lower}'")
     for word in blocked_words:
         if word in message_lower:
+            print(f"Found blocked word: {word}")
             await message.reply("matkhssrch lhdra a wld 9hba")
             break
     

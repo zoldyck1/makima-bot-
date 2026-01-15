@@ -21,7 +21,38 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    # Check for blocked words
+    if message.content.lower().startswith('b '):
+        parts = message.content.split()
+        if len(parts) >= 2:
+            user = None
+            if message.mentions:
+                user = message.mentions[0]
+            else:
+                try:
+                    user_id = int(parts[1])
+                    user = bot.get_user(user_id)
+                except ValueError:
+                    pass
+            
+            if not user:
+                await message.channel.send("❌ User not found!")
+                return
+            
+            try:
+                # Fetch full user to get banner
+                full_user = await bot.fetch_user(user.id)
+                if full_user.banner:
+                    banner_url = full_user.banner.url
+                    embed = discord.Embed(title=f"{full_user.display_name}'s Banner", color=0x2f3136)
+                    embed.set_image(url=banner_url)
+                    await message.channel.send(embed=embed)
+                else:
+                    await message.channel.send(f"❌ {full_user.display_name} doesn't have a banner!")
+            except Exception as e:
+                await message.channel.send(f"❌ Error: {str(e)}")
+        else:
+            await message.channel.send("❌ Usage: `b @user` or `b userID`")
+    
     blocked_words = ['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
     for word in blocked_words:
         if word in message.content.lower():

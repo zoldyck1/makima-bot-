@@ -21,46 +21,82 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    if message.content.lower().startswith('w9') or message.content.lower().startswith('zb') or message.content.lower().startswith('9hba') or message.content.lower().startswith('qhba') or message.content.lower().startswith('w10') or message.content.lower().startswith('zbi') or message.content.lower().startswith('9lawi') or message.content.lower().startswith('qlawi') or message.content.lower().startswith('terma') or message.content.lower().startswith('zok') or message.content.lower().startswith('zebi') or message.content.lower().startswith('wld9hba'):
-        await message.channel.send("matkhssrch lhdra a wld 9hba")
+    # Check for blocked words
+    blocked_words = ['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
+    for word in blocked_words:
+        if word in message.content.lower():
+            await message.channel.send("matkhssrch lhdra a wld 9hba")
+            break
     
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:
             await message.channel.send("❌ You don't have permission to move members!")
             return
         
-        if not message.author.voice or not message.author.voice.channel:
-            await message.channel.send("❌ You must be in a voice channel!")
-            return
-        
         parts = message.content.split()
-        if len(parts) >= 2:
-            member = None
-            if message.mentions:
-                member = message.mentions[0]
+        if len(parts) >= 3:
+            # Get first user (to be moved)
+            member_to_move = None
+            if message.mentions and len(message.mentions) >= 1:
+                member_to_move = message.mentions[0]
             else:
                 try:
                     user_id = int(parts[1])
-                    member = message.guild.get_member(user_id)
+                    member_to_move = message.guild.get_member(user_id)
                 except ValueError:
-                    # Invalid user ID format
                     pass
             
-            if not member:
-                await message.channel.send("❌ User not found!")
+            if not member_to_move:
+                await message.channel.send("❌ First user not found!")
                 return
             
-            if not member.voice:
-                await message.channel.send(f"❌ {member.mention} is not in a voice channel!")
+            if not member_to_move.voice:
+                await message.channel.send(f"❌ {member_to_move.mention} is not in a voice channel!")
                 return
             
+            # Get destination (second user or channel name)
+            destination_channel = None
+            
+            # Check if second parameter is a mentioned user
+            if len(message.mentions) >= 2:
+                target_user = message.mentions[1]
+                if target_user.voice and target_user.voice.channel:
+                    destination_channel = target_user.voice.channel
+                else:
+                    await message.channel.send(f"❌ {target_user.mention} is not in a voice channel!")
+                    return
+            else:
+                # Try to find user by ID or channel by name
+                try:
+                    user_id = int(parts[2])
+                    target_user = message.guild.get_member(user_id)
+                    if target_user and target_user.voice and target_user.voice.channel:
+                        destination_channel = target_user.voice.channel
+                    else:
+                        await message.channel.send(f"❌ User with ID {user_id} not found or not in voice channel!")
+                        return
+                except ValueError:
+                    # Not a user ID, try channel name
+                    channel_name = ' '.join(parts[2:])
+                    for channel in message.guild.voice_channels:
+                        if channel.name.lower() == channel_name.lower():
+                            destination_channel = channel
+                            break
+                    
+                    if not destination_channel:
+                        await message.channel.send(f"❌ Voice channel '{channel_name}' not found!")
+                        return
+            
+            # Move the user
             try:
-                await member.move_to(message.author.voice.channel)
-                await message.channel.send(f"✅ Moved {member.mention} to {message.author.voice.channel.mention}")
+                await member_to_move.move_to(destination_channel)
+                await message.channel.send(f"✅ Moved {member_to_move.mention} to {destination_channel.mention}")
             except discord.Forbidden:
                 await message.channel.send("❌ I don't have permission to move members!")
             except Exception as e:
                 await message.channel.send(f"❌ Error: {str(e)}")
+        else:
+            await message.channel.send("❌ Usage: `aji @user1 @user2` or `aji userID1 userID2` or `aji @user channelname`")
     
     await bot.process_commands(message)
 

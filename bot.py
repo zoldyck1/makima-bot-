@@ -54,6 +54,32 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"❌ Error: {str(e)}")
     
+    if message.content.lower() == 'clear' or message.content.lower().startswith('clear '):
+        if not message.author.guild_permissions.manage_messages:
+            await message.channel.send("❌ You don't have permission to delete messages!")
+            return
+        
+        parts = message.content.split()
+        amount = 5  # Default amount
+        
+        if len(parts) >= 2:
+            try:
+                amount = int(parts[1])
+                if amount < 1 or amount > 100:
+                    await message.channel.send("❌ Amount must be between 1 and 100!")
+                    return
+            except ValueError:
+                await message.channel.send("❌ Invalid number!")
+                return
+        
+        try:
+            deleted = await message.channel.purge(limit=amount + 1)  # +1 to include the clear command
+            await message.channel.send(f"✅ Deleted {len(deleted) - 1} messages!", delete_after=3)
+        except discord.Forbidden:
+            await message.channel.send("❌ I don't have permission to delete messages!")
+        except Exception as e:
+            await message.channel.send(f"❌ Error: {str(e)}")
+    
     blocked_words = ['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
     for word in blocked_words:
         if word in message.content.lower():

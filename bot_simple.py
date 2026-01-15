@@ -21,14 +21,8 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    blocked_words = ['zebi', 'wld9hba', '9hba', 'qhba', 'w9', 'w10', 'zb', 'zbi', '9lawi', 'qlawi', 'terma', 'zok']
-    message_lower = message.content.lower()
-    print(f"Message: '{message.content}' | Lower: '{message_lower}'")
-    for word in blocked_words:
-        if word in message_lower:
-            print(f"Found blocked word: {word}")
-            await message.reply("matkhssrch lhdra a wld 9hba")
-            break
+    if message.content.lower().startswith('w9') or message.content.lower().startswith('zb') or message.content.lower().startswith('9hba') or message.content.lower().startswith('qhba') or message.content.lower().startswith('w10') or message.content.lower().startswith('zbi') or message.content.lower().startswith('9lawi') or message.content.lower().startswith('qlawi') or message.content.lower().startswith('terma') or message.content.lower().startswith('zok') or message.content.lower().startswith('zebi') or message.content.lower().startswith('wld9hba'):
+        await message.channel.send("matkhssrch lhdra a wld 9hba")
     
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:

@@ -22,9 +22,11 @@ async def on_message(message):
         return
     
     blocked_words = ['zebi', 'wld9hba', '9hba', 'qhba', 'w9', 'w10', 'zb', 'zbi', '9lawi', 'qlawi', 'terma', 'zok']
-    if any(word in message.content.lower() for word in blocked_words):
-        await message.channel.send("matkhssrch lhdra a wld 9hba")
-        return  # Stop processing after sending the warning
+    message_lower = message.content.lower()
+    for word in blocked_words:
+        if word in message_lower:
+            await message.reply("matkhssrch lhdra a wld 9hba")
+            break
     
     if message.content.lower().startswith('aji '):
         if not message.author.guild_permissions.move_members:

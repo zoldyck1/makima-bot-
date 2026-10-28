@@ -4,6 +4,7 @@ import os
 import re
 import asyncio
 import aiohttp
+from urllib.parse import urlparse
 from aiohttp import web
 from dotenv import load_dotenv
 
@@ -27,6 +28,12 @@ async def start_web():
 bot.setup_hook = start_web
 
 URL_RE = re.compile(r'https?://\S+')
+GIF_HOSTS = ('tenor.com', 'giphy.com', 'klipy.com')
+
+def is_gif(url):
+    parsed = urlparse(url)
+    host = parsed.hostname or ''
+    return parsed.path.lower().endswith('.gif') or any(host == h or host.endswith('.' + h) for h in GIF_HOSTS)
 
 async def check_url_virustotal(url):
     api_key = os.getenv('VT_API_KEY')
@@ -138,7 +145,7 @@ async def on_message(message):
     
     # shortcut: only the first link per message, to stay under VT free limit (4 req/min)
     link = URL_RE.search(message.content)
-    if link:
+    if link and not is_gif(link.group(0).rstrip('>)')):
         try:
             result = await check_url_virustotal(link.group(0).rstrip('>)'))
             if result:
@@ -149,7 +156,7 @@ async def on_message(message):
     blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba', 'zamel','tbon','tabon','khra']
     for word in blocked_words:
         if word in message.content.lower():
-            await message.reply("matkhssrch lhdra a wld 9ahba!")
+            await message.reply("matkhssrch lhdra a wld 9ahba!\nhttps://tenor.com/view/oh-no-oh-no-oh-hell-no-hell-gif-13947705")
             break
     
     if message.content.lower().startswith('aji '):

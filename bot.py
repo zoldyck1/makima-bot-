@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import re
-import base64
+import asyncio
 import aiohttp
 from aiohttp import web
 from dotenv import load_dotenv
@@ -33,16 +33,24 @@ async def check_url_virustotal(url):
     if not api_key:
         return None
     headers = {'x-apikey': api_key}
-    url_id = base64.urlsafe_b64encode(url.encode()).decode().strip('=')
     async with aiohttp.ClientSession(headers=headers) as session:
-        async with session.get(f'https://www.virustotal.com/api/v3/urls/{url_id}') as resp:
-            if resp.status == 404:
-                # Unknown to VT: submit it so a report exists next time
-                await session.post('https://www.virustotal.com/api/v3/urls', data={'url': url})
-                return f"🔍 `{url}` is not known to VirusTotal yet, submitted for scan. Try again in a minute."
+        # Submitting (not looking up by raw URL) works even when VT normalizes the URL differently
+        async with session.post('https://www.virustotal.com/api/v3/urls', data={'url': url}) as resp:
             if resp.status != 200:
                 return f"⚠️ VirusTotal error ({resp.status}) for `{url}`"
-            stats = (await resp.json())['data']['attributes']['last_analysis_stats']
+            analysis_id = (await resp.json())['data']['id']
+        # 15s between polls keeps one check within the free 4 requests/min
+        for _ in range(3):
+            await asyncio.sleep(15)
+            async with session.get(f'https://www.virustotal.com/api/v3/analyses/{analysis_id}') as resp:
+                if resp.status != 200:
+                    return f"⚠️ VirusTotal error ({resp.status}) for `{url}`"
+                attrs = (await resp.json())['data']['attributes']
+            if attrs['status'] == 'completed':
+                stats = attrs['stats']
+                break
+        else:
+            return f"⏳ `{url}` is still being scanned by VirusTotal, try again later."
     bad = stats.get('malicious', 0) + stats.get('suspicious', 0)
     total = sum(stats.values())
     if bad:
@@ -127,7 +135,7 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"❌ VirusTotal error: {str(e)}")
 
-    blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
+    blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba', 'zamel']
     for word in blocked_words:
         if word in message.content.lower():
             await message.channel.send("matkhssrch lhdra a wld 9hba")

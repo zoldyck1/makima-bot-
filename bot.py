@@ -4,6 +4,7 @@ import os
 import re
 import base64
 import aiohttp
+from aiohttp import web
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +15,16 @@ intents.voice_states = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+async def start_web():
+    # Render web services need an open port; UptimeRobot pings it to keep the bot awake
+    app = web.Application()
+    app.router.add_get('/', lambda request: web.Response(text='ok'))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, '0.0.0.0', int(os.getenv('PORT', 8080))).start()
+
+bot.setup_hook = start_web
 
 URL_RE = re.compile(r'https?://\S+')
 

@@ -39,9 +39,17 @@ async def check_url_virustotal(url):
             if resp.status != 200:
                 return f"⚠️ VirusTotal error ({resp.status}) for `{url}`"
             analysis_id = (await resp.json())['data']['id']
-        # 15s between polls keeps one check within the free 4 requests/min
-        for _ in range(3):
-            await asyncio.sleep(15)
+        # Analysis id is "u-<url sha256>-<timestamp>": use VT's own URL id to get the last report instantly
+        parts = analysis_id.split('-')
+        if len(parts) == 3:
+            async with session.get(f'https://www.virustotal.com/api/v3/urls/{parts[1]}') as resp:
+                if resp.status == 200:
+                    stats = (await resp.json())['data']['attributes'].get('last_analysis_stats')
+                    if stats and sum(stats.values()):
+                        return format_vt_result(url, stats)
+        # Brand-new URL: wait for the fresh scan
+        for delay in (5, 10, 15):
+            await asyncio.sleep(delay)
             async with session.get(f'https://www.virustotal.com/api/v3/analyses/{analysis_id}') as resp:
                 if resp.status != 200:
                     return f"⚠️ VirusTotal error ({resp.status}) for `{url}`"
@@ -51,6 +59,9 @@ async def check_url_virustotal(url):
                 break
         else:
             return f"⏳ `{url}` is still being scanned by VirusTotal, try again later."
+    return format_vt_result(url, stats)
+
+def format_vt_result(url, stats):
     bad = stats.get('malicious', 0) + stats.get('suspicious', 0)
     total = sum(stats.values())
     if bad:

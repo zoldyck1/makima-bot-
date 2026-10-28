@@ -1,6 +1,9 @@
 import discord
 from discord.ext import commands
 import os
+import re
+import base64
+import aiohttp
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +13,30 @@ intents.message_content = True
 intents.voice_states = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
+
+URL_RE = re.compile(r'https?://\S+')
+
+async def check_url_virustotal(url):
+    api_key = os.getenv('VT_API_KEY')
+    if not api_key:
+        return None
+    headers = {'x-apikey': api_key}
+    url_id = base64.urlsafe_b64encode(url.encode()).decode().strip('=')
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(f'https://www.virustotal.com/api/v3/urls/{url_id}') as resp:
+            if resp.status == 404:
+                # Unknown to VT: submit it so a report exists next time
+                await session.post('https://www.virustotal.com/api/v3/urls', data={'url': url})
+                return f"🔍 `{url}` is not known to VirusTotal yet, submitted for scan. Try again in a minute."
+            if resp.status != 200:
+                return f"⚠️ VirusTotal error ({resp.status}) for `{url}`"
+            stats = (await resp.json())['data']['attributes']['last_analysis_stats']
+    bad = stats.get('malicious', 0) + stats.get('suspicious', 0)
+    total = sum(stats.values())
+    if bad:
+        return f"🚨 `{url}` flagged by {bad}/{total} engines on VirusTotal. Don't open it!"
+    return f"✅ `{url}` looks safe ({total} engines, 0 detections)."
 
 @bot.event
 async def on_ready():
@@ -80,7 +106,17 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"❌ Error: {str(e)}")
     
-    blocked_words = ['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
+    # shortcut: only the first link per message, to stay under VT free limit (4 req/min)
+    link = URL_RE.search(message.content)
+    if link:
+        try:
+            result = await check_url_virustotal(link.group(0).rstrip('>)'))
+            if result:
+                await message.reply(result, mention_author=False)
+        except Exception as e:
+            await message.channel.send(f"❌ VirusTotal error: {str(e)}")
+
+    blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba']
     for word in blocked_words:
         if word in message.content.lower():
             await message.channel.send("matkhssrch lhdra a wld 9hba")
@@ -172,7 +208,7 @@ async def on_message(message):
             await message.channel.send("❌ Usage: `aji @user` or `aji @user1 @user2` or `aji userID1 userID2` or `aji @user channelname`")
     
     await bot.process_commands(message)
-
+    
 if __name__ == "__main__":
     token = os.getenv('DISCORD_TOKEN')
     if not token:

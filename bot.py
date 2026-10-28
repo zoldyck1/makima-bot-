@@ -135,10 +135,10 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"❌ VirusTotal error: {str(e)}")
 
-    blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba', 'zamel']
+    blocked_words =['w9', 'zb', '9hba', 'qhba', 'w10', 'zbi', '9lawi', 'qlawi', 'terma', 'zok', 'zebi', 'wld9hba', 'zamel','tbon','tabon','khra']
     for word in blocked_words:
         if word in message.content.lower():
-            await message.channel.send("matkhssrch lhdra a wld 9hba")
+            await message.channel.send("matkhssrch lhdra a wld 9ahba!")
             break
     
     if message.content.lower().startswith('aji '):
